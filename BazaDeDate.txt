@@ -1,0 +1,8 @@
+  <Map zoom={12} center={initialPosition}  mapId={"9a1954d76eef1edd"}>
+          <AdvancedMarker position={initialPosition}>
+            <Pin background={"black"} />
+          </AdvancedMarker>
+        </Map> 
+
+
+
