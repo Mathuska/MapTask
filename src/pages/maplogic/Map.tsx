@@ -5,8 +5,9 @@ const MapPage = () => {
   const harta = useRef<HTMLDivElement>(null);
   const initialPosition = { lat: 47.0122, lng: 28.8605 };
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [poly, setPoly] = useState<google.maps.Polyline | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
-  const [polyCoordinates, setPolyCoordinates] = useState<{ lat: number; lng: number }[]>([])
+  const [polyCoordinates , setPolyCoordinates] = useState<{ lat: number; lng: number }[]>([])
 
   useEffect(() => {
     if (harta.current) {
@@ -24,14 +25,16 @@ const MapPage = () => {
   }, []);
 
   useEffect(() => {
-
     markers.forEach((marker) => {
-      const markerLat = marker.getPosition()?.lat();
-      const markerLng = marker.getPosition()?.lng();
-
-      if (markerLat !== undefined && markerLng !== undefined) {
+      const markerPosition = marker.getPosition();
+      
+      if (markerPosition) {
+        
+        const markerLat = markerPosition.lat();
+        const markerLng = markerPosition.lng();
+  
         const newCoordinates = { lat: markerLat, lng: markerLng };
-
+  
         if (
           !polyCoordinates.some(
             (coord) =>
@@ -47,52 +50,65 @@ const MapPage = () => {
       }
     });
   }, [markers]);
+  
 
   useEffect(() => {
-    
-    if(polyCoordinates.length === 2){
-      const pathCoordinates = [polyCoordinates[0] ,polyCoordinates[1]]
-    const markerPoly = new google.maps.Polyline({
-        path: pathCoordinates,
-        geodesic: true,
-        strokeColor: "#000000",
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-      });
-      markerPoly.setMap(map);
-    }else if(polyCoordinates.length === 3){
-      const pathCoordinates = [polyCoordinates[0] ,polyCoordinates[1] , polyCoordinates[2] , polyCoordinates[0]]
 
-      const polyTriangle = new google.maps.Polygon({
-        paths: pathCoordinates,
-        strokeColor: "#000000",
-        strokeOpacity: 1,
-        strokeWeight: 2,
-        fillColor: "#000000",
-        fillOpacity: 0.35,
-      });
-    
-      polyTriangle.setMap(map);
-    }
+if(polyCoordinates.length === 2){
+  const pathCoordinates = [polyCoordinates[0] ,polyCoordinates[1]]
+  
+     const firstPoly = new google.maps.Polyline({
+          path: pathCoordinates,
+          strokeColor: "#000000",
+          strokeOpacity: 1.0,
+          draggable: true,
+          strokeWeight: 2,
+        });
+        setPoly(firstPoly)
+        addPoly(firstPoly)
+      }
+else if(polyCoordinates.length > 2){
+  if (poly) {
+    const path = poly.getPath();
+    path.clear()
+
+for (let i = 0; i < polyCoordinates.length; i++) {
+  const coord = polyCoordinates[i];
+  const latLng = new google.maps.LatLng(coord.lat, coord.lng);
+  path.push(latLng);
+}
+addPoly(poly)
+  }
+}      
+
+
   }, [polyCoordinates]);
 
+  
+
   const handleMapClick = (event: google.maps.MapMouseEvent) => {
-    const clickPosition = event.latLng;
-
-    
-    const newMarker = new google.maps.Marker({
-      position: clickPosition,
-      title: `${markers.length + 1}`,
-      draggable: true,
-      map: newMap,
-    });
-    setMarkers((prevMarkers) => {
-
-      const newMarkers = [...prevMarkers, newMarker];
-
-      return newMarkers;
-    });
+    const clickPosition: google.maps.LatLng | null = event.latLng;
+  
+    if (clickPosition) {
+      const newMarker = new google.maps.Marker({
+        position: clickPosition,
+        title: `${markers.length + 1}`,
+        draggable: true,
+        map: newMap,
+      });
+  
+      setMarkers((prevMarkers) => {
+        const newMarkers = [...prevMarkers, newMarker];
+        return newMarkers;
+      });
+  
+    }
   };
+  
+const addPoly = (poly : google.maps.Polyline ) =>{
+  poly.setMap(map);
+
+}
 
   return <div style={{ height: "100vh", width: "100%" }} ref={harta}></div>;
 };
