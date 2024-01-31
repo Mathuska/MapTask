@@ -1,10 +1,10 @@
 import React from 'react';
 import './App.css';
-import MapPage from './pages/maplogic/Map';
+import Map from './pages/Map';
 
 function App() {
   return (
-    <MapPage/>
+    <Map/>
   );
 }
 
