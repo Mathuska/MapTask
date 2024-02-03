@@ -1,103 +1,48 @@
-  <Map zoom={12} center={initialPosition}  mapId={"9a1954d76eef1edd"}>
-          <AdvancedMarker position={initialPosition}>
-            <Pin background={"black"} />
-          </AdvancedMarker>
-        </Map> 
+  const removeAllPolygons = () => {
+        polygons.forEach((polygon) => {
+          polygon.setMap(null); 
+        });
+        setPolygons([]); 
+      };
 
 
-
-
-
-
-
-import { useEffect, useState, useRef } from "react";
-
-const MapPage = () => {
-  let newMap: google.maps.Map;
-  // let polyCoordinates: [] | any | undefined
-  let markers: google.maps.Marker[] = [];
-  const harta = useRef<HTMLDivElement>(null);
-  const initialPosition = { lat: 47.0122, lng: 28.8605 };
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [polyCoordinates, setPolyCoordinates] = useState<{ lat: number; lng: number }[]>([]);
-
-  useEffect(() => {
-    if (harta.current) {
-      newMap = new google.maps.Map(harta.current, {
-        zoom: 12,
-        center: initialPosition,
-      });
-
-      newMap.addListener("click", (event: google.maps.MapMouseEvent)=> {
-        handleMapClick(event);
-      });;
-      setMap(newMap);
-      
+      const addPolygon = () => {
+        if (mapRef.current) {
+            const polygon = new google.maps.Polygon({
+                paths: pathsCoord,
+                strokeColor: "#550000",
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: "#000000",
+                fillOpacity: 0.5,
+                editable: true,
+                draggable : true,
+              });
+            removeAllLines()
+              polygon.setMap(mapRef.current);
+              setPolygons((prevPolygons) => [...prevPolygons, polygon]);
+              
+            }
     }
-  }, []);
 
-  useEffect(() => {
 
-    markers.forEach((marker) => {
-      const markerLat = marker.getPosition()?.lat();
-      const markerLng = marker.getPosition()?.lng();
 
-      if (markerLat !== undefined && markerLng !== undefined) {
-        const newCoordinates = { lat: markerLat, lng: markerLng };
-
-        polyCoordinates.push(newCoordinates)
-        if (
-          !polyCoordinates.some(
-            (coord) =>
-              coord.lat === newCoordinates.lat &&
-              coord.lng === newCoordinates.lng
-          )
-        ) {
-          setPolyCoordinates((prevCoordinates: any) => {
-            const updatedCoordinates = [...prevCoordinates, newCoordinates];
-            return updatedCoordinates;
-          });
+    const addLastLine = () => {
+        if (lines.length > number) {
+            markers[0].addListener("click" , () => {
+                if (mapRef.current) {
+                  const lastCoord =   pathsCoord[pathsCoord.length -1];
+                  const line = new window.google.maps.Polyline({
+                      path: [pathsCoord[0],lastCoord ],
+                      draggable: true,
+                      strokeColor: '#000000',
+                      strokeOpacity: 1.0,
+                      strokeWeight: 2,
+                    });
+                    setLines((prevLines) => [...prevLines,line]);
+                    line.setMap(mapRef.current)
+                }
+            })
+            addPolygon()
         }
-      }
-    });
-  }, [markers]);
-
-  useEffect(() => {
-    
-    
-    if(polyCoordinates.length === 2){
-const pathCoordinates = [polyCoordinates[0] ,polyCoordinates[1]]
-console.log("2");
-
-    const markerPoly = new google.maps.Polyline({
-        // path: pathCoordinates,
-        strokeColor: "#FF0000",
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-      });
-
-    
-      markerPoly.setMap(map);
     }
-  }, [polyCoordinates]);
-
-  const handleMapClick = (event: google.maps.MapMouseEvent) => {
-    const clickPosition = event.latLng;
-
-    const newMarker = new google.maps.Marker({
-        position: clickPosition,
-        title: `${markers.length + 1}`,
-        draggable: true,
-        map: newMap,
-      });
-console.log(markers);
-
-      markers.push(newMarker);
-console.log(markers);
-
-  };
-
-  return <div style={{ height: "100vh", width: "100%" }} ref={harta}></div>;
-};
-
-export default MapPage;
