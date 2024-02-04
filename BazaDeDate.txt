@@ -46,3 +46,39 @@
             addPolygon()
         }
     }
+
+
+
+
+     const addLine = (polyCoordinates: google.maps.LatLngLiteral[]) => {
+        removeAllLines();
+        if (mapRef.current) {
+            // const pathLatLng = polyCoordinates.map(coord => new google.maps.LatLng(coord.lat, coord.lng));
+            
+            // const isLineExist = lines.some((line) => {
+            //     const lineCoordinates = line.getPath().getArray();
+            //     return (
+            //         lineCoordinates.length === pathLatLng.length &&
+            //         lineCoordinates.every((coord, index) => {
+            //             const pathCoord = pathLatLng[index];
+            //             return coord.equals(pathCoord);
+            //         })
+            //     );
+            // });
+    
+            // if (!isLineExist) {
+                const line = new window.google.maps.Polyline({
+                    // path: [...pathLatLng, pathLatLng[0]],
+                    // path: pathLatLng,
+                    path: polyCoordinates,
+                    draggable: true,
+                    geodesic: true,
+                    strokeColor: '#000000',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                });
+                line.setMap(mapRef.current);
+                setLines((prevLines) => [...prevLines, line]);
+            // }
+        }
+    };
