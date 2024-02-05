@@ -3,24 +3,30 @@ import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 
 const Map = () => {
   const mapRef = useRef();
-  const libraries :  ("places" | "drawing")[] = ["places", "drawing"];
+  const libraries: ("places" | "drawing")[] = ["places", "drawing"];
   const containerStyle = { width: "100%", height: "100vh" };
   const chisinau: google.maps.LatLngLiteral = { lat: 47.0122, lng: 28.8605 };
   const [countOfMarkers, setCountOfMarkers] = useState(0);
   const [countOfPolygons, setCountOfPolygons] = useState(0);
   const [pathsCoord, setPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
-  const [polygonPathsCoord, setPolygonPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
+  const [polygonPathsCoord, setPolygonPathsCoord] = useState<
+    google.maps.LatLngLiteral[]
+  >([]);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [newMarkers, setNewMarkers] = useState<google.maps.Marker[]>([]);
   const [lines, setLines] = useState<google.maps.Polyline[]>([]);
-  const [polygons, setPolygons] = useState<google.maps.Polyline[]>([]);
+  const [polygons, setPolygons] = useState<google.maps.Polygon[]>([]);
+
+  useEffect(() => {
+    addEventPolygons();
+  }, [polygons]);
 
   useEffect(() => {
     addPolygon();
   }, [countOfPolygons]);
 
   useEffect(() => {
-addPolygonMarkers(polygonPathsCoord)
+    addPolygonMarkers(polygonPathsCoord);
   }, [polygonPathsCoord]);
 
   useEffect(() => {
@@ -31,48 +37,6 @@ addPolygonMarkers(polygonPathsCoord)
     }
   }, [countOfMarkers, pathsCoord]);
 
-
-  const editingTheSide = (editedPolygon: google.maps.Polygon) => {
-    const newPathsCoord :any = editedPolygon.getPath()
-    newPathsCoord.forEach((coord :any) => {
-        const markerPosition = {
-            lat: coord.lat(),
-            lng: coord.lng(),
-          };
-          const marker = new google.maps.Marker({
-            position : markerPosition,
-            map: mapRef.current,
-          });
-          setNewMarkers((prevMarkers) => [...prevMarkers, marker]);
-        });
-  };
-
-const addPolygonMarkers = (position: any) => {
-    newMarkers.forEach((marker) => {
-        marker.setMap(null);
-    });
-    setNewMarkers([])
-position.forEach((coord : any) => {
-      const marker = new google.maps.Marker({
-            position :coord,
-            map: mapRef.current,
-          });
-          setNewMarkers((prevMarkers) => [...prevMarkers, marker]);
-});
-}
-
-
-const editingThePolygon = (editedPolygon: google.maps.Polygon) => {
-    setPolygonPathsCoord([]);
-    const newPathsCoord : any = editedPolygon.getPath()
-    newPathsCoord.forEach((coord : any) => {
-        const markerPosition = {
-            lat: coord.lat(),
-            lng: coord.lng(),
-          };
-          setPolygonPathsCoord((prevPaths) => [...prevPaths, markerPosition]);
-        });
-};
 
   const addPolygon = () => {
     if (mapRef.current) {
@@ -86,15 +50,15 @@ const editingThePolygon = (editedPolygon: google.maps.Polygon) => {
         editable: true,
         draggable: true,
       });
-      addPolygonMarkers(pathsCoord)
-      removeAll()
-      
-    google.maps.event.addListener(polygon.getPath(), 'set_at', () =>{ editingThePolygon(polygon) });
-    google.maps.event.addListener(polygon.getPath(), 'insert_at', () =>{ editingTheSide(polygon) });
+      addPolygonMarkers(pathsCoord);
+      removeAll();
 
       polygon.setMap(mapRef.current);
       setPolygons((prevPolygons) => [...prevPolygons, polygon]);
-      localStorage.setItem(`${polygons.length} polygon`, JSON.stringify(pathsCoord));
+      localStorage.setItem(
+        `${polygons.length} polygon`,
+        JSON.stringify(pathsCoord)
+      );
     }
   };
 
@@ -159,7 +123,9 @@ const editingThePolygon = (editedPolygon: google.maps.Polygon) => {
     });
   };
 
-  const addMarker = (position: google.maps.LatLng | google.maps.LatLngLiteral) => {
+  const addMarker = (
+    position: google.maps.LatLng | google.maps.LatLngLiteral
+  ) => {
     setCountOfMarkers((prevCount) => prevCount + 1);
     const marker = new google.maps.Marker({
       position,
@@ -174,10 +140,59 @@ const editingThePolygon = (editedPolygon: google.maps.Polygon) => {
     map.addListener("click", (event: google.maps.MapMouseEvent) => {
       addMarker(event.latLng!);
     });
-    localStorage.clear()
+    localStorage.clear();
   };
 
-  
+  const addPolygonMarkers = (position: any) => {
+    newMarkers.forEach((marker) => {
+      marker.setMap(null);
+    });
+    setNewMarkers([]);
+    position.forEach((coord: any) => {
+      const marker = new google.maps.Marker({
+        position: coord,
+        map: mapRef.current,
+      });
+      setNewMarkers((prevMarkers) => [...prevMarkers, marker]);
+    });
+  };
+  const editingThePolygon = () => {
+    setPolygonPathsCoord([]);
+    polygons.forEach((paths: any) => {
+      const newPathsCoord: any = paths.getPath();
+      newPathsCoord.forEach((coord: any) => {
+        const markerPosition = {
+          lat: coord.lat(),
+          lng: coord.lng(),
+        };
+        setPolygonPathsCoord((prevPaths) => [...prevPaths, markerPosition]);
+      });
+    });
+  };
+  const editingTheSide = (editedPolygon: google.maps.Polygon) => {
+    const newPathsCoord: any = editedPolygon.getPath();
+    newPathsCoord.forEach((coord: any) => {
+      const markerPosition = {
+        lat: coord.lat(),
+        lng: coord.lng(),
+      };
+      const marker = new google.maps.Marker({
+        position: markerPosition,
+        map: mapRef.current,
+      });
+      setNewMarkers((prevMarkers) => [...prevMarkers, marker]);
+    });
+  };
+  const addEventPolygons = () => {
+    polygons.forEach((polygon: any) => {
+      google.maps.event.addListener(polygon.getPath(), "insert_at", () => {
+        editingTheSide(polygon);
+      });
+      google.maps.event.addListener(polygon.getPath(), "set_at", () => {
+        editingThePolygon();
+      });
+    });
+  };
   const verifyPolygons = () => {
     if (countOfMarkers === pathsCoord.length - 1) {
       setCountOfPolygons((prevNumber) => prevNumber + 1);
@@ -203,11 +218,11 @@ const editingThePolygon = (editedPolygon: google.maps.Polygon) => {
     //      }
   };
   const removeAll = () => {
-    removeAllLines()
-    removeAllMarkers()
-    setCountOfMarkers(0)
-    setPathsCoord([])
-  }
+    removeAllLines();
+    removeAllMarkers();
+    setCountOfMarkers(0);
+    setPathsCoord([]);
+  };
   const removeAllLines = () => {
     lines.forEach((line) => {
       line.setMap(null);
