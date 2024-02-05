@@ -2,20 +2,26 @@ import React, { useRef, useState, useEffect } from "react";
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 
 const Map = () => {
-    const mapRef = useRef();
-    const libraries: any = ["places", "drawing"];
+  const mapRef = useRef();
+  const libraries :  ("places" | "drawing")[] = ["places", "drawing"];
   const containerStyle = { width: "100%", height: "100vh" };
   const chisinau: google.maps.LatLngLiteral = { lat: 47.0122, lng: 28.8605 };
   const [countOfMarkers, setCountOfMarkers] = useState(0);
   const [countOfPolygons, setCountOfPolygons] = useState(0);
   const [pathsCoord, setPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
+  const [polygonPathsCoord, setPolygonPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [newMarkers, setNewMarkers] = useState<google.maps.Marker[]>([]);
   const [lines, setLines] = useState<google.maps.Polyline[]>([]);
   const [polygons, setPolygons] = useState<google.maps.Polyline[]>([]);
 
   useEffect(() => {
     addPolygon();
   }, [countOfPolygons]);
+
+  useEffect(() => {
+addPolygonMarkers(polygonPathsCoord)
+  }, [polygonPathsCoord]);
 
   useEffect(() => {
     verifyPolygons();
@@ -25,29 +31,70 @@ const Map = () => {
     }
   }, [countOfMarkers, pathsCoord]);
 
-const addNewPolygon = () => {
-console.log(countOfPolygons);
 
+  const editingTheSide = (editedPolygon: google.maps.Polygon) => {
+    const newPathsCoord :any = editedPolygon.getPath()
+    newPathsCoord.forEach((coord :any) => {
+        const markerPosition = {
+            lat: coord.lat(),
+            lng: coord.lng(),
+          };
+          const marker = new google.maps.Marker({
+            position : markerPosition,
+            map: mapRef.current,
+          });
+          setNewMarkers((prevMarkers) => [...prevMarkers, marker]);
+        });
+  };
+
+const addPolygonMarkers = (position: any) => {
+    newMarkers.forEach((marker) => {
+        marker.setMap(null);
+    });
+    setNewMarkers([])
+position.forEach((coord : any) => {
+      const marker = new google.maps.Marker({
+            position :coord,
+            map: mapRef.current,
+          });
+          setNewMarkers((prevMarkers) => [...prevMarkers, marker]);
+});
 }
+
+
+const editingThePolygon = (editedPolygon: google.maps.Polygon) => {
+    setPolygonPathsCoord([]);
+    const newPathsCoord : any = editedPolygon.getPath()
+    newPathsCoord.forEach((coord : any) => {
+        const markerPosition = {
+            lat: coord.lat(),
+            lng: coord.lng(),
+          };
+          setPolygonPathsCoord((prevPaths) => [...prevPaths, markerPosition]);
+        });
+};
 
   const addPolygon = () => {
     if (mapRef.current) {
       const polygon = new google.maps.Polygon({
         paths: pathsCoord,
         strokeColor: "#000000",
-        strokeOpacity: 0.8,
+        strokeOpacity: 1,
         strokeWeight: 2,
         fillColor: "#000000",
         fillOpacity: 0.5,
         editable: true,
         draggable: true,
       });
-      pathsCoord.forEach(path => addMarker(path))
+      addPolygonMarkers(pathsCoord)
       removeAll()
+      
+    google.maps.event.addListener(polygon.getPath(), 'set_at', () =>{ editingThePolygon(polygon) });
+    google.maps.event.addListener(polygon.getPath(), 'insert_at', () =>{ editingTheSide(polygon) });
+
       polygon.setMap(mapRef.current);
       setPolygons((prevPolygons) => [...prevPolygons, polygon]);
       localStorage.setItem(`${polygons.length} polygon`, JSON.stringify(pathsCoord));
-addNewPolygon()
     }
   };
 
@@ -117,7 +164,6 @@ addNewPolygon()
     const marker = new google.maps.Marker({
       position,
       title: `${countOfMarkers}`,
-      draggable: true,
       map: mapRef.current,
     });
     setMarkers((prevMarkers) => [...prevMarkers, marker]);
@@ -131,6 +177,7 @@ addNewPolygon()
     localStorage.clear()
   };
 
+  
   const verifyPolygons = () => {
     if (countOfMarkers === pathsCoord.length - 1) {
       setCountOfPolygons((prevNumber) => prevNumber + 1);
@@ -192,10 +239,6 @@ addNewPolygon()
       >
         UNDO
       </div>
-      {/* <div id='delete' style={{ marginLeft:'680px' ,width:"50px",height:'30px' , cursor:"pointer"}} >
-                <input placeholder='Numarul de laturi' value={number}
-              onChange={(e : any) => setNumber(e.target.value)}></input>
-                </div> */}
       <GoogleMap
         zoom={8}
         center={chisinau}
