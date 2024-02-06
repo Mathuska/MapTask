@@ -9,9 +9,7 @@ const Map = () => {
   const [countOfMarkers, setCountOfMarkers] = useState(0);
   const [countOfPolygons, setCountOfPolygons] = useState(0);
   const [pathsCoord, setPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
-  const [polygonPathsCoord, setPolygonPathsCoord] = useState<
-    google.maps.LatLngLiteral[]
-  >([]);
+  const [polygonPathsCoord, setPolygonPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [newMarkers, setNewMarkers] = useState<google.maps.Marker[]>([]);
   const [lines, setLines] = useState<google.maps.Polyline[]>([]);
@@ -19,6 +17,7 @@ const Map = () => {
 
   useEffect(() => {
     addEventPolygons();
+    editingThePolygon()
   }, [polygons]);
 
   useEffect(() => {
@@ -30,8 +29,6 @@ const Map = () => {
   }, [polygonPathsCoord]);
 
   useEffect(() => {
-    console.log(pathsCoord.length);
-    console.log(countOfMarkers);
     verifyPolygons();
     addCoordOfMarkers(markers);
     if (markers.length >= 2) {
@@ -71,10 +68,6 @@ const Map = () => {
 
       polygon.setMap(mapRef.current);
       setPolygons((prevPolygons) => [...prevPolygons, polygon]);
-      //   localStorage.setItem(
-      //     `${polygons.length} polygon`,
-      //     JSON.stringify(pathsCoord)
-      //   );
     }
   };
 
@@ -125,25 +118,30 @@ const Map = () => {
     }
   };
 
-  const addCoordOfMarkers = (targets: any) => {
-    targets.forEach((marker: any) => {
-      const markerPosition = {
-        lat: marker.position.lat(),
-        lng: marker.position.lng(),
-      };
-      setPathsCoord((prevPaths) => {
-        if (
-          !prevPaths.some(
-            (path) =>
-              path.lat === markerPosition.lat && path.lng === markerPosition.lng
-          )
-        ) {
-          return [...prevPaths, markerPosition];
-        }
-        return prevPaths;
-      });
+  const addCoordOfMarkers = (targets: google.maps.Marker[]) => {
+    targets.forEach((marker) => {
+      const position = marker.getPosition();
+      if (position) {
+        const markerPosition = {
+          lat: position.lat(),
+          lng: position.lng(),
+        };
+        setPathsCoord((prevPaths) => {
+          if (
+            !prevPaths.some(
+              (path) =>
+                path.lat === markerPosition.lat &&
+                path.lng === markerPosition.lng
+            )
+          ) {
+            return [...prevPaths, markerPosition];
+          }
+          return prevPaths;
+        });
+      }
     });
   };
+  
 
   const addMarker = (
     position: google.maps.LatLng | google.maps.LatLngLiteral
@@ -157,12 +155,11 @@ const Map = () => {
     setMarkers((prevMarkers) => [...prevMarkers, marker]);
   };
 
-  const onLoadMap = (map: any) => {
+  const onLoadMap = (map : any) => {
     mapRef.current = map;
     map.addListener("click", (event: google.maps.MapMouseEvent) => {
       addMarker(event.latLng!);
     });
-    localStorage.clear();
   };
 
   const undoFunction = () => {
@@ -181,7 +178,7 @@ const Map = () => {
   const undoPolygon = () => {
     const polygonPaths = polygons[polygons.length - 1].getPath();
     polygonPaths.pop();
-    polygonPaths.forEach((coord: any) => {
+    polygonPaths.forEach((coord: google.maps.LatLng) => {
       const markerPosition = {
         lat: coord.lat(),
         lng: coord.lng(),
@@ -194,13 +191,12 @@ const Map = () => {
     const newPolygons = polygons.slice(0, polygons.length - 1);
     setPolygons(newPolygons);
   };
-
-  const addPolygonMarkers = (position: any) => {
+  const addPolygonMarkers = (position: google.maps.LatLngLiteral[]) => {
     newMarkers.forEach((marker) => {
       marker.setMap(null);
     });
     setNewMarkers([]);
-    position.forEach((coord: any) => {
+    position.forEach((coord) => {
       const marker = new google.maps.Marker({
         position: coord,
         map: mapRef.current,
@@ -210,9 +206,9 @@ const Map = () => {
   };
   const editingThePolygon = () => {
     setPolygonPathsCoord([]);
-    polygons.forEach((paths: any) => {
-      const newPathsCoord: any = paths.getPath();
-      newPathsCoord.forEach((coord: any) => {
+    polygons.forEach((polygon: google.maps.Polygon) => {
+      const newPathsCoord = polygon.getPath().getArray() as google.maps.LatLng[];
+      newPathsCoord.forEach((coord) => {
         const markerPosition = {
           lat: coord.lat(),
           lng: coord.lng(),
@@ -222,8 +218,8 @@ const Map = () => {
     });
   };
   const editingTheSide = (editedPolygon: google.maps.Polygon) => {
-    const newPathsCoord: any = editedPolygon.getPath();
-    newPathsCoord.forEach((coord: any) => {
+    const newPathsCoord = editedPolygon.getPath().getArray() as google.maps.LatLng[];
+    newPathsCoord.forEach((coord) => {
       const markerPosition = {
         lat: coord.lat(),
         lng: coord.lng(),
@@ -236,7 +232,7 @@ const Map = () => {
     });
   };
   const addEventPolygons = () => {
-    polygons.forEach((polygon: any) => {
+    polygons.forEach((polygon: google.maps.Polygon) => {
       google.maps.event.addListener(polygon.getPath(), "insert_at", () => {
         editingTheSide(polygon);
       });
