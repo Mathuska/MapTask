@@ -1,84 +1,62 @@
-  const removeAllPolygons = () => {
-        polygons.forEach((polygon) => {
-          polygon.setMap(null); 
-        });
-        setPolygons([]); 
-      };
-
-
-      const addPolygon = () => {
-        if (mapRef.current) {
-            const polygon = new google.maps.Polygon({
-                paths: pathsCoord,
-                strokeColor: "#550000",
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                fillColor: "#000000",
-                fillOpacity: 0.5,
-                editable: true,
-                draggable : true,
-              });
-            removeAllLines()
-              polygon.setMap(mapRef.current);
-              setPolygons((prevPolygons) => [...prevPolygons, polygon]);
-              
-            }
-    }
-
-
-
-    const addLastLine = () => {
-        if (lines.length > number) {
-            markers[0].addListener("click" , () => {
-                if (mapRef.current) {
-                  const lastCoord =   pathsCoord[pathsCoord.length -1];
-                  const line = new window.google.maps.Polyline({
-                      path: [pathsCoord[0],lastCoord ],
-                      draggable: true,
-                      strokeColor: '#000000',
-                      strokeOpacity: 1.0,
-                      strokeWeight: 2,
-                    });
-                    setLines((prevLines) => [...prevLines,line]);
-                    line.setMap(mapRef.current)
-                }
-            })
-            addPolygon()
-        }
-    }
-
-
-
-
-     const addLine = (polyCoordinates: google.maps.LatLngLiteral[]) => {
-        removeAllLines();
-        if (mapRef.current) {
-            // const pathLatLng = polyCoordinates.map(coord => new google.maps.LatLng(coord.lat, coord.lng));
-            
-            // const isLineExist = lines.some((line) => {
-            //     const lineCoordinates = line.getPath().getArray();
-            //     return (
-            //         lineCoordinates.length === pathLatLng.length &&
-            //         lineCoordinates.every((coord, index) => {
-            //             const pathCoord = pathLatLng[index];
-            //             return coord.equals(pathCoord);
-            //         })
-            //     );
-            // });
+onst [undoStack, setUndoStack] = useState<any[]>([]);
+const undoBtn = () => {
+    console.log(undoStack);
     
-            // if (!isLineExist) {
-                const line = new window.google.maps.Polyline({
-                    // path: [...pathLatLng, pathLatLng[0]],
-                    // path: pathLatLng,
-                    path: polyCoordinates,
-                    draggable: true,
-                    geodesic: true,
-                    strokeColor: '#000000',
-                    strokeOpacity: 1.0,
-                    strokeWeight: 2,
-                });
-                line.setMap(mapRef.current);
-                setLines((prevLines) => [...prevLines, line]);
-            // }
-        }
-    };
+    if (undoStack.length > 0) {
+      const prevState = undoStack.pop();
+      setMarkers(prevState.markers);
+      setLines(prevState.lines);
+      setPolygons(prevState.polygons);
+      setPathsCoord(prevState.pathsCoord);
+      setPolygonPathsCoord(prevState.polygonPathsCoord);
+      setCountOfMarkers(prevState.countOfMarkers);
+      setCountOfPolygons(prevState.countOfPolygons);
+    }
+  };
+
+
+    const prevState = {
+        markers: [...markers],
+        lines: [...lines],
+        polygons: [...polygons],
+        pathsCoord: [...pathsCoord],
+        polygonPathsCoord: [...polygonPathsCoord],
+        countOfMarkers,
+        countOfPolygons,
+      };
+  
+      setUndoStack([...undoStack, prevState]);\
+
+
+
+
+
+
+
+
+
+
+
+
+const addLine = (polyCoordinates: google.maps.LatLngLiteral[]) => {
+  addLastLine();
+
+  if (mapRef.current) {
+    const existingLine = lines[0]; 
+
+    if (existingLine) {
+      existingLine.setPath(polyCoordinates.map(coord => new google.maps.LatLng(coord.lat, coord.lng)));
+    } else {
+      const line = new window.google.maps.Polyline({
+        path: polyCoordinates,
+        strokeColor: "#000000",
+        strokeOpacity: 1.0,
+        draggable: true,
+        strokeWeight: 2,
+      });
+
+      line.setMap(mapRef.current);
+      setLines((prevLines) => [...prevLines, line]);
+    }
+  }
+};
