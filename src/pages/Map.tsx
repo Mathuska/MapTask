@@ -9,13 +9,12 @@ const Map = () => {
   const [countOfMarkers, setCountOfMarkers] = useState(0);
   const [countOfPolygons, setCountOfPolygons] = useState(0);
   const [pathsCoord, setPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
-  const [polygonPathsCoord, setPolygonPathsCoord] = useState<
-    google.maps.LatLngLiteral[]
-  >([]);
+  const [polygonPathsCoord, setPolygonPathsCoord] = useState<google.maps.LatLngLiteral[]>([]);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [newMarkers, setNewMarkers] = useState<google.maps.Marker[]>([]);
   const [lines, setLines] = useState<google.maps.Polyline[]>([]);
   const [polygons, setPolygons] = useState<google.maps.Polygon[]>([]);
+
 
   useEffect(() => {
     addEventPolygons();
@@ -38,7 +37,40 @@ const Map = () => {
   }, [countOfMarkers, pathsCoord]);
 
 
+  const undoBtn = () => {
+    if (polygons.length === 0) {
+        if (markers.length > 0) {
+            console.log(markers);
+            markers[markers.length - 1].setMap(null);
+            const newMarkers = markers.slice(0, markers.length - 1);
+            const newPathsCoord = pathsCoord.slice(0, pathsCoord.length - 1);
+            setPathsCoord(newPathsCoord)
+            setMarkers(newMarkers)
+            if (markers.length > 1) {
+                lines[lines.length - 1].setMap(null);
+                const newLines = lines.slice(0, lines.length - 1);
+                setLines(newLines);
+            }
+        }
+    }else if (polygons.length === 1){
+        const polygonPaths  = polygons[0].getPath();
+        polygonPaths.pop()
+        polygonPaths.forEach((coord:any) => {
+            const markerPosition = {
+                lat: coord.lat(),
+                lng: coord.lng(),
+            };
+            addMarker(markerPosition)
+        })
+        newMarkers.forEach(marker => marker.setMap(null))
+        setNewMarkers([])
+        polygons[0].setMap(null);
+        setPolygons([]);
+    }
+  };
+
   const addPolygon = () => {
+   
     if (mapRef.current) {
       const polygon = new google.maps.Polygon({
         paths: pathsCoord,
@@ -91,17 +123,24 @@ const Map = () => {
     removeAllLines();
     addLastLine();
     if (mapRef.current) {
-      const line = new window.google.maps.Polyline({
-        path: polyCoordinates,
-        draggable: true,
-        strokeColor: "#000000",
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-      });
-      line.setMap(mapRef.current);
-      setLines((prevLines) => [...prevLines, line]);
+      for (let i = 0; i < polyCoordinates.length - 1; i++) {
+        const startPoint = polyCoordinates[i];
+        const endPoint = polyCoordinates[i + 1];
+  
+        const line = new window.google.maps.Polyline({
+          path: [startPoint, endPoint],
+          strokeColor: "#000000",
+          strokeOpacity: 1.0,
+          draggable: true,
+          strokeWeight: 2,
+        });
+  
+        line.setMap(mapRef.current);
+        setLines((prevLines) => [...prevLines, line]);
+      }
     }
   };
+  
 
   const addCoordOfMarkers = (targets: any) => {
     targets.forEach((marker: any) => {
@@ -129,7 +168,7 @@ const Map = () => {
     setCountOfMarkers((prevCount) => prevCount + 1);
     const marker = new google.maps.Marker({
       position,
-      title: `${countOfMarkers}`,
+      draggable:true,
       map: mapRef.current,
     });
     setMarkers((prevMarkers) => [...prevMarkers, marker]);
@@ -198,25 +237,6 @@ const Map = () => {
       setCountOfPolygons((prevNumber) => prevNumber + 1);
     }
   };
-  const undoBtn = () => {
-    if (polygons.length > 0) {
-      console.log(polygons.length);
-      polygons[0].setMap(null);
-      pathsCoord.pop();
-      addLine(pathsCoord);
-    }
-
-    // if (markers.length > 0) {
-    //          if (lines.length > 0) {
-    //              lines[lines.length - 1].setMap(null);
-    //              const newLines = lines.slice(0,lines.length - 1)
-    //              setLines(newLines);
-    //          }
-    //          markers[markers.length - 1].setMap(null);
-    //          const newMarkers = markers.slice(0, markers.length - 1);
-    //          setMarkers(newMarkers);
-    //      }
-  };
   const removeAll = () => {
     removeAllLines();
     removeAllMarkers();
@@ -227,7 +247,7 @@ const Map = () => {
     lines.forEach((line) => {
       line.setMap(null);
     });
-    setLines([]);
+    setLines([])
   };
   const removeAllMarkers = () => {
     markers.forEach((marker) => {
