@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 
 const Map = () => {
-  const mapRef = useRef();
+  const mapRef = useRef<google.maps.Map | undefined>(undefined);
   const libraries: ("places" | "drawing")[] = ["places", "drawing"];
   const containerStyle = { width: "100%", height: "100vh" };
   const chisinau: google.maps.LatLngLiteral = { lat: 47.0122, lng: 28.8605 };
@@ -14,6 +14,7 @@ const Map = () => {
   const [newMarkers, setNewMarkers] = useState<google.maps.Marker[]>([]);
   const [lines, setLines] = useState<google.maps.Polyline[]>([]);
   const [polygons, setPolygons] = useState<google.maps.Polygon[]>([]);
+  let previousLineTrajectory: google.maps.Polyline | null = null;
 
   useEffect(() => {
     addEventPolygons();
@@ -36,7 +37,47 @@ const Map = () => {
     }
   }, [countOfMarkers, pathsCoord]);
 
+  useEffect(() => {
+    if (mapRef.current) {
+      const map = mapRef.current;
+      const mousemoveListener = map.addListener("mousemove", (event: google.maps.MapMouseEvent) => {
+        const cursorPosition = event.latLng;
+        if (markers.length > 0 && cursorPosition) {
+          const lastMarkerPosition = markers[markers.length - 1].getPosition();
+          if (lastMarkerPosition) {
+            addLineTrajectory(lastMarkerPosition.toJSON(), cursorPosition.toJSON());
+          }
+        }
+      });
+      return () => {
+        google.maps.event.removeListener(mousemoveListener);
+      };
+    }
+  }, [markers]);
+
+ 
   
+  const addLineTrajectory = (startCoord: google.maps.LatLngLiteral, endCoord: google.maps.LatLngLiteral) => {
+  if (countOfMarkers > 0) {
+    if (mapRef.current) {
+        previousLineTrajectory?.setMap(null);
+      const lineTrajectory = new window.google.maps.Polyline({
+        path: [startCoord, endCoord],
+        strokeColor: "#000000",
+        strokeOpacity: 0.5,
+        clickable :true,
+        strokeWeight: 2,
+      });
+      lineTrajectory.setMap(mapRef.current);
+      lineTrajectory.addListener("click" , (event: google.maps.MapMouseEvent) => {
+        addMarker(event.latLng!);
+        previousLineTrajectory?.setMap(null);
+      })
+      previousLineTrajectory = lineTrajectory;
+    }
+  }
+  };
+
   const undoBtn = () => {
     if (polygons.length === 0) {
       if (markers.length > 0) {
@@ -74,6 +115,7 @@ const Map = () => {
   const addLastLine = () => {
     if (markers) {
       markers[0].addListener("click", () => {
+        previousLineTrajectory?.setMap(null);
         if (mapRef.current) {
           const lastCoord = markers[0].getPosition()?.toJSON();
 
@@ -141,7 +183,6 @@ const Map = () => {
       }
     });
   };
-  
 
   const addMarker = (
     position: google.maps.LatLng | google.maps.LatLngLiteral
@@ -152,7 +193,10 @@ const Map = () => {
       draggable: true,
       map: mapRef.current,
     });
+    // marker.addListener("drag", () => dragMarker(marker))
+
     setMarkers((prevMarkers) => [...prevMarkers, marker]);
+    
   };
 
   const onLoadMap = (map : any) => {
@@ -160,6 +204,7 @@ const Map = () => {
     map.addListener("click", (event: google.maps.MapMouseEvent) => {
       addMarker(event.latLng!);
     });
+   
   };
 
   const undoFunction = () => {
