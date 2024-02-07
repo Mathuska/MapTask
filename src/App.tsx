@@ -1,11 +1,13 @@
-import React from 'react';
-import './App.css';
-import Map from './pages/Map';
+import React from "react";
+import Map from "./pages/Map"
 
-function App() {
+const App = () => {
+  const chisinau: google.maps.LatLngLiteral = { lat: 47.0122, lng: 28.8605 };
   return (
-    <Map/>
+    <div>
+      <Map center={chisinau} />
+    </div>
   );
-}
+};
 
 export default App;
